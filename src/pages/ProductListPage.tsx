@@ -5,6 +5,7 @@ import { useCategories, useProducts } from "@/hooks/useCatalog"
 import { useDebounce } from "@/hooks/useUtils"
 import { ProductGrid } from "@/components/product/ProductGrid"
 import { Button, Checkbox, Pagination, Select } from "@/components/ui"
+import { getPageMeta } from "@/utils/pagination"
 
 type SortKey = "relevance" | "price-asc" | "price-desc" | "new"
 
@@ -55,7 +56,7 @@ export default function ProductListPage({ mode = "browse" }: { mode?: "browse" |
         <h1 className="text-h2 font-display text-foreground">
           {mode === "search" ? `Results for "${nameQuery}"` : activeCategory ? activeCategory.name : "All Products"}
         </h1>
-        {data && <p className="mt-1 text-sm text-muted-foreground">{data.totalElements} products</p>}
+        {data && <p className="mt-1 text-sm text-muted-foreground">{getPageMeta(data).totalElements} products</p>}
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row">
@@ -120,11 +121,11 @@ export default function ProductListPage({ mode = "browse" }: { mode?: "browse" |
 
           <ProductGrid products={sortedFiltered} loading={isLoading} />
 
-          {data && data.totalPages > 1 && (
+          {data && getPageMeta(data).totalPages > 1 && (
             <div className="mt-8">
               <Pagination
                 page={page + 1}
-                totalPages={data.totalPages}
+                totalPages={getPageMeta(data).totalPages}
                 onChange={(p) => setParam("page", String(p - 1))}
               />
             </div>

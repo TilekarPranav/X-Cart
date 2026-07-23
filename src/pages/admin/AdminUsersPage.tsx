@@ -5,6 +5,7 @@ import { useAdminUsers, useDeleteUser, useToggleUser } from "@/hooks/useAdmin"
 import { getErrorMessage } from "@/services/http"
 import type { AdminUser } from "@/types/api"
 import { Badge, DataTable, Modal, Pagination, type Column } from "@/components/ui"
+import { getPageMeta } from "@/utils/pagination"
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(0)
@@ -91,9 +92,9 @@ export default function AdminUsersPage() {
         <DataTable columns={columns} rows={data?.content ?? []} loading={isLoading} emptyLabel="No users found." />
       </div>
 
-      {data && data.totalPages > 1 && (
+      {data && getPageMeta(data).totalPages > 1 && (
         <div className="mt-6">
-          <Pagination page={page + 1} totalPages={data.totalPages} onChange={(p) => setPage(p - 1)} />
+          <Pagination page={page + 1} totalPages={getPageMeta(data).totalPages} onChange={(p) => setPage(p - 1)} />
         </div>
       )}
 

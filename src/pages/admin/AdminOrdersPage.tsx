@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/services/http"
 import type { Order, OrderStatus } from "@/types/api"
 import { OrderStatusBadge } from "@/components/product/Widgets"
 import { DataTable, Modal, Pagination, Select, type Column } from "@/components/ui"
+import { getPageMeta } from "@/utils/pagination"
 
 // Mirrors the backend's order state machine so illegal transitions are disabled
 // client-side rather than surfaced only after a failed request.
@@ -80,9 +81,9 @@ export default function AdminOrdersPage() {
         <DataTable columns={columns} rows={data?.content ?? []} loading={isLoading} emptyLabel="No orders yet." />
       </div>
 
-      {data && data.totalPages > 1 && (
+      {data && getPageMeta(data).totalPages > 1 && (
         <div className="mt-6">
-          <Pagination page={page + 1} totalPages={data.totalPages} onChange={(p) => setPage(p - 1)} />
+          <Pagination page={page + 1} totalPages={getPageMeta(data).totalPages} onChange={(p) => setPage(p - 1)} />
         </div>
       )}
 

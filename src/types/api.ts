@@ -24,14 +24,20 @@ export interface ApiResponse<T> {
  */
 export interface Page<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-  first: boolean
-  last: boolean
-  empty: boolean
-  numberOfElements: number
+  totalElements?: number
+  totalPages?: number
+  number?: number
+  size?: number
+  first?: boolean
+  last?: boolean
+  empty?: boolean
+  numberOfElements?: number
+  page?: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
 }
 
 /* ------------------------------- Auth ------------------------------- */

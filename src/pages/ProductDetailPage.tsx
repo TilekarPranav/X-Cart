@@ -15,6 +15,7 @@ import { getErrorMessage } from "@/services/http"
 import { Badge, Button, ErrorMessage, Input, Rating, Skeleton, Tabs, Textarea } from "@/components/ui"
 import { QuantityStepper, StarRatingInput } from "@/components/product/Widgets"
 import { ProductGrid } from "@/components/product/ProductGrid"
+import { getPageMeta } from "@/utils/pagination"
 
 export default function ProductDetailPage() {
   const { id } = useParams()
@@ -107,7 +108,7 @@ export default function ProductDetailPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{product.categoryName}</p>
           <h1 className="mt-1 text-h2 font-display text-foreground">{product.name}</h1>
           <div className="mt-2 flex items-center gap-2">
-            <Rating value={average ?? 0} count={reviewsPage?.totalElements} />
+            <Rating value={average ?? 0} count={getPageMeta(reviewsPage).totalElements} />
           </div>
           <p className="mt-4 text-h3 font-bold text-foreground">{formatCurrency(product.price)}</p>
           <p className="mt-2 text-sm text-muted-foreground">{product.description}</p>
@@ -169,7 +170,7 @@ export default function ProductDetailPage() {
           items={[
             { value: "description", label: "Description" },
             { value: "specifications", label: "Specifications" },
-            { value: "reviews", label: `Reviews (${reviewsPage?.totalElements ?? 0})` },
+            { value: "reviews", label: `Reviews (${getPageMeta(reviewsPage).totalElements})` },
           ]}
           value={tab}
           onChange={setTab}

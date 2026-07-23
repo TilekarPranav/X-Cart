@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from "@/utils/format"
 import { useOrders } from "@/hooks/useCommerce"
 import { OrderStatusBadge } from "@/components/product/Widgets"
 import { EmptyState, Pagination, Skeleton } from "@/components/ui"
+import { getPageMeta } from "@/utils/pagination"
 
 export default function OrdersPage() {
   const [params, setParams] = useSearchParams()
@@ -62,9 +63,9 @@ export default function OrdersPage() {
               </Link>
             ))}
           </div>
-          {data.totalPages > 1 && (
+          {getPageMeta(data).totalPages > 1 && (
             <div className="mt-8">
-              <Pagination page={page + 1} totalPages={data.totalPages} onChange={(p) => setPage(p - 1)} />
+              <Pagination page={page + 1} totalPages={getPageMeta(data).totalPages} onChange={(p) => setPage(p - 1)} />
             </div>
           )}
         </>
