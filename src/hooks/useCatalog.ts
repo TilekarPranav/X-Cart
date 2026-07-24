@@ -120,3 +120,26 @@ export function useCreateReview(productId: number) {
     },
   })
 }
+
+export function useUpdateReview(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ reviewId, payload }: { reviewId: number; payload: { rating: number; comment: string } }) =>
+      reviewService.update(reviewId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reviews", productId] })
+      qc.invalidateQueries({ queryKey: queryKeys.reviews.average(productId) })
+    },
+  })
+}
+
+export function useDeleteReview(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (reviewId: number) => reviewService.remove(reviewId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reviews", productId] })
+      qc.invalidateQueries({ queryKey: queryKeys.reviews.average(productId) })
+    },
+  })
+}

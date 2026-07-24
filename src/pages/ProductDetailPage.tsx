@@ -3,10 +3,11 @@ import { useParams, Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { Heart, ShoppingCart, Truck, ShieldCheck, RotateCcw, Star } from "lucide-react"
+import { Heart, ShoppingCart, Truck, ShieldCheck, RotateCcw, Star, Pencil, Trash2, X, Check } from "lucide-react"
 import { formatCurrency, formatDate, formatImageUrl } from "@/utils/format"
 import { reviewSchema, type ReviewValues } from "@/utils/schemas"
-import { useProduct, useProducts, useReviewAverage, useReviews, useCreateReview } from "@/hooks/useCatalog"
+import type { Review } from "@/types/api"
+import { useProduct, useProducts, useReviewAverage, useReviews, useCreateReview, useUpdateReview, useDeleteReview, } from "@/hooks/useCatalog"
 import { useInventory } from "@/hooks/useCommerce"
 import { useAddToCart } from "@/hooks/useCommerce"
 import { useWishlist } from "@/context/WishlistContext"
@@ -26,13 +27,18 @@ export default function ProductDetailPage() {
   const { data: average } = useReviewAverage(productId)
   const { data: related } = useProducts({ categoryId: product?.categoryId, size: 4 })
 
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { has, toggle } = useWishlist()
   const addToCart = useAddToCart()
   const createReview = useCreateReview(productId)
+  const updateReview = useUpdateReview(productId)
+  const deleteReview = useDeleteReview(productId)
 
   const [quantity, setQuantity] = useState(1)
   const [tab, setTab] = useState("description")
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null)
+  const [editRating, setEditRating] = useState(0)
+  const [editComment, setEditComment] = useState("")
 
   const {
     register,
@@ -50,6 +56,41 @@ export default function ProductDetailPage() {
       reset({ reviewerName: "", rating: 0, comment: "" })
     } catch (err) {
       toast.error(getErrorMessage(err, "Could not submit your review"))
+    }
+  }
+
+
+  function isOwnReview(review: Review): boolean {
+    return isAuthenticated && !!user?.name && review.reviewerName.trim() === user.name.trim()
+  }
+
+  function startEditReview(review: Review) {
+    setEditingReviewId(review.id)
+    setEditRating(review.rating)
+    setEditComment(review.comment)
+  }
+
+  function cancelEditReview() {
+    setEditingReviewId(null)
+  }
+
+  async function saveEditReview(reviewId: number) {
+    try {
+      await updateReview.mutateAsync({ reviewId, payload: { rating: editRating, comment: editComment } })
+      toast.success("Review updated")
+      setEditingReviewId(null)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not update your review"))
+    }
+  }
+
+  async function handleDeleteReview(reviewId: number) {
+    if (!window.confirm("Delete this review? This can't be undone.")) return
+    try {
+      await deleteReview.mutateAsync(reviewId)
+      toast.success("Review deleted")
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not delete your review"))
     }
   }
 
@@ -195,12 +236,65 @@ export default function ProductDetailPage() {
                 )}
                 {(reviewsPage?.content ?? []).map((r) => (
                   <div key={r.id} className="border-b border-border pb-5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">{r.reviewerName}</p>
-                      <span className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</span>
-                    </div>
-                    <Rating value={r.rating} size={13} className="mt-1" />
-                    <p className="mt-2 text-sm text-muted-foreground">{r.comment}</p>
+                    {editingReviewId === r.id ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">{r.reviewerName}</p>
+                          <span className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</span>
+                        </div>
+                        <StarRatingInput value={editRating} onChange={setEditRating} />
+                        <Textarea
+                          rows={3}
+                          value={editComment}
+                          onChange={(e) => setEditComment(e.target.value)}
+                          placeholder="Update your thoughts"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            loading={updateReview.isPending}
+                            onClick={() => saveEditReview(r.id)}
+                          >
+                            <Check className="h-3.5 w-3.5" /> Save
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={cancelEditReview}>
+                            <X className="h-3.5 w-3.5" /> Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">{r.reviewerName}</p>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</span>
+                            {isOwnReview(r) && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  aria-label="Edit review"
+                                  onClick={() => startEditReview(r)}
+                                  className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Delete review"
+                                  onClick={() => handleDeleteReview(r.id)}
+                                  className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Rating value={r.rating} size={13} className="mt-1" />
+                        <p className="mt-2 text-sm text-muted-foreground">{r.comment}</p>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
