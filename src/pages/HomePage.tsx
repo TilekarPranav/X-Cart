@@ -77,12 +77,12 @@ export default function HomePage() {
             className="hidden items-center justify-center lg:flex"
           >
             <div className="grid grid-cols-2 gap-4">
-              {(featured?.content ?? []).slice(0, 4).map((p) => (
-                <div key={p.id} className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-                  <div className="flex h-24 w-32 items-center justify-center rounded-xl bg-white/20 text-xs text-white/70">
-                    {p.categoryName}
+              {(categories ?? []).slice(0, 4).map((c) => (
+                <Link key={c.id} to={`/products?categoryId=${c.id}`} className="rounded-2xl bg-white/10 p-4 backdrop-blur transition-transform hover:scale-105">
+                  <div className="flex h-24 w-32 items-center justify-center rounded-xl bg-white/20 text-xs font-medium text-white">
+                    {c.name}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </motion.div>

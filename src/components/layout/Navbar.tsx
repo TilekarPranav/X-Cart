@@ -125,8 +125,8 @@ export function Navbar() {
             <Link to="/products" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
               All Products
             </Link>
-            <Link to="/categories" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
-              Categories
+            <Link to="/about" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+              About
             </Link>
           </nav>
 
@@ -329,6 +329,24 @@ export function Navbar() {
           <MenuLink to="/categories" onClick={() => setMobileOpen(false)}>
             Categories
           </MenuLink>
+          <MenuLink to="/about" onClick={() => setMobileOpen(false)}>
+            About
+          </MenuLink>
+          <MenuLink to="/contact" onClick={() => setMobileOpen(false)}>
+            Contact
+          </MenuLink>
+          <MenuLink to="/faq" onClick={() => setMobileOpen(false)}>
+            FAQ
+          </MenuLink>
+          <div className="my-1 border-t border-border" />
+          <button
+            onClick={toggle}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+          <div className="my-1 border-t border-border" />
           <MenuLink to="/wishlist" onClick={() => setMobileOpen(false)}>
             Wishlist
           </MenuLink>

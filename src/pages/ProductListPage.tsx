@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
-import { SlidersHorizontal, X } from "lucide-react"
+import { Link, useSearchParams } from "react-router-dom"
+import { ChevronRight, SlidersHorizontal, X } from "lucide-react"
 import { useCategories, useProducts } from "@/hooks/useCatalog"
 import { useDebounce } from "@/hooks/useUtils"
 import { ProductGrid } from "@/components/product/ProductGrid"
@@ -52,6 +52,21 @@ export default function ProductListPage({ mode = "browse" }: { mode?: "browse" |
 
   return (
     <div className="container py-8">
+      {/* Breadcrumbs */}
+      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
+        <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        {activeCategory ? (
+          <>
+            <Link to="/products" className="hover:text-foreground transition-colors">Products</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="font-medium text-foreground">{activeCategory.name}</span>
+          </>
+        ) : (
+          <span className="font-medium text-foreground">{mode === "search" ? "Search" : "Products"}</span>
+        )}
+      </nav>
+
       <div className="mb-6">
         <h1 className="text-h2 font-display text-foreground">
           {mode === "search" ? `Results for "${nameQuery}"` : activeCategory ? activeCategory.name : "All Products"}

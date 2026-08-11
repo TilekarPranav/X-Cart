@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { toast } from "sonner"
 import { Heart, ShoppingCart } from "lucide-react"
 import type { Product } from "@/types/api"
 import { formatCurrency, formatImageUrl } from "@/utils/format"
@@ -53,7 +54,7 @@ export function ProductCard({ product }: { product: Product }) {
             className="h-9 w-9"
             disabled={!product.active}
             loading={addToCart.isPending}
-            onClick={() => addToCart.mutate({ productId: product.id, quantity: 1 })}
+            onClick={() => addToCart.mutate({ productId: product.id, quantity: 1 }, { onSuccess: () => toast.success("Added to cart") })}
             aria-label="Add to cart"
           >
             <ShoppingCart className="h-4 w-4" />
