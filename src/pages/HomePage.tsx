@@ -6,7 +6,7 @@ import { ProductGrid } from "@/components/product/ProductGrid"
 import { Button, Skeleton } from "@/components/ui"
 
 const perks = [
-  { icon: Truck, title: "Free delivery", description: "On orders over $50" },
+  { icon: Truck, title: "Free delivery", description: "On orders over ₹999" },
   { icon: ShieldCheck, title: "Secure checkout", description: "256-bit encrypted payments" },
   { icon: RotateCcw, title: "Easy returns", description: "30-day return window" },
   { icon: Sparkles, title: "Curated quality", description: "Hand-picked, tested products" },

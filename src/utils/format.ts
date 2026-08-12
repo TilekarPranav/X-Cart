@@ -1,7 +1,7 @@
 /** Formatting helpers shared across the app. */
 
-export function formatCurrency(value: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCurrency(value: number, currency = "INR"): string {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency,
     maximumFractionDigits: 2,
@@ -11,7 +11,7 @@ export function formatCurrency(value: number, currency = "USD"): string {
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return "—"
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -21,7 +21,7 @@ export function formatDate(iso: string): string {
 export function formatDateTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return "—"
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -31,7 +31,7 @@ export function formatDateTime(iso: string): string {
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value)
+  return new Intl.NumberFormat("en-IN").format(value)
 }
 
 /** Relative time like "3 days ago". */
@@ -51,7 +51,6 @@ export function timeAgo(iso: string): string {
 
 import { API_BASE_URL } from "@/constants/app"
 
-/** Deterministic discount % derived from a product id (mock only). */
 export function initials(name: string): string {
   return name
     .split(" ")
@@ -62,18 +61,16 @@ export function initials(name: string): string {
     .toUpperCase()
 }
 
-/** Formats product image URL, resolving relative paths against the backend. */
 export function formatImageUrl(url: string | undefined | null): string {
   if (!url) return "/placeholder.svg"
   if (
     url.startsWith("http://") ||
     url.startsWith("https://") ||
     url.startsWith("data:") ||
-    url.startsWith("/") && !url.startsWith("/products/images") // local static asset
+    url.startsWith("/") && !url.startsWith("/products/images")
   ) {
     return url
   }
   const cleanUrl = url.startsWith("/") ? url : `/${url}`
   return `${API_BASE_URL}${cleanUrl}`
 }
-
