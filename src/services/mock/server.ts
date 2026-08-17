@@ -355,14 +355,27 @@ route("get", /^\/orders$/, ({ params }) => {
   return { status: 200, payload: ok(paginate<Order>(sorted, page, size)) }
 })
 
-route("post", /^\/orders$/, () => {
+route("post", /^\/orders$/, ({ body }) => {
   if (cart.items.length === 0) {
     return { status: 400, payload: fail("Cannot place an order with an empty cart") }
   }
+  const shippingMethod = body?.shippingMethod === "EXPRESS" ? "EXPRESS" : "STANDARD"
+  if (!body?.shippingAddress) {
+    return { status: 400, payload: fail("Shipping address is required") }
+  }
+  // Mirrors OrderService.placeOrder on the real backend: free standard shipping
+  // over $50 subtotal, flat $14.99 for express, 8% tax on the subtotal.
+  const subtotal = cart.totalAmount
+  const shippingAmount = shippingMethod === "EXPRESS" ? 14.99 : subtotal >= 50 ? 0 : 6.99
+  const taxAmount = Math.round(subtotal * 0.08 * 100) / 100
   const order: Order = {
     id: Math.max(...orders.map((o) => o.id)) + 1,
     status: "PLACED",
-    totalAmount: cart.totalAmount,
+    totalAmount: subtotal + shippingAmount + taxAmount,
+    shippingAmount,
+    taxAmount,
+    shippingMethod,
+    shippingAddress: body.shippingAddress,
     createdAt: now(),
     items: cart.items.map((i) => ({
       productId: i.productId,

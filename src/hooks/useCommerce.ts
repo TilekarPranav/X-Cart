@@ -74,7 +74,8 @@ export function useOrder(id: number) {
 export function usePlaceOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => orderService.place(),
+    mutationFn: (payload: { shippingMethod: "STANDARD" | "EXPRESS"; shippingAddress: string }) =>
+      orderService.place(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] })
       qc.invalidateQueries({ queryKey: queryKeys.cart })

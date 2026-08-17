@@ -47,9 +47,13 @@ export default function CheckoutPage() {
   } = useForm<AddressValues>({ resolver: zodResolver(addressSchema) })
 
   const total = cart?.totalAmount ?? 0
-  const shippingCost = shippingSpeed === "express" ? 14.99 : total >= 50 ? 0 : 6.99
-  const tax = Math.round(total * 0.08 * 100) / 100
-  const grandTotal = total + shippingCost + tax
+  // These are client-side ESTIMATES shown before the order exists, using the same
+  // formula the backend applies server-side in OrderService.placeOrder. The actual
+  // charged total comes back from the server in the placeOrder() response (and is
+  // what OrderSuccessPage displays) — this is only for the pre-submit preview.
+  const estimatedShipping = shippingSpeed === "express" ? 14.99 : total >= 50 ? 0 : 6.99
+  const estimatedTax = Math.round(total * 0.08 * 100) / 100
+  const estimatedGrandTotal = total + estimatedShipping + estimatedTax
 
   const stepIndex = steps.findIndex((s) => s.key === step)
 
@@ -65,7 +69,20 @@ export default function CheckoutPage() {
   async function placeOrderAndPay() {
     setPlacing(true)
     try {
-      const order = await placeOrder.mutateAsync()
+      const values = getValues()
+      const shippingAddress = [
+        values.fullName,
+        [values.line1, values.line2].filter(Boolean).join(", "),
+        `${values.city}, ${values.state} ${values.postalCode}`,
+        values.country,
+      ]
+        .filter(Boolean)
+        .join(" — ")
+
+      const order = await placeOrder.mutateAsync({
+        shippingMethod: shippingSpeed === "express" ? "EXPRESS" : "STANDARD",
+        shippingAddress,
+      })
       // Cash on Delivery skips the payment gateway; every other method charges now.
       if (method !== "COD") {
         await pay.mutateAsync({ orderId: order.id, method })
@@ -243,7 +260,7 @@ export default function CheckoutPage() {
                   Back
                 </Button>
                 <Button onClick={placeOrderAndPay} loading={placing} className="flex-1">
-                  Place Order — {formatCurrency(grandTotal)}
+                  Place Order — {formatCurrency(estimatedGrandTotal)}
                 </Button>
               </div>
             </div>
@@ -260,17 +277,19 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Shipping</span>
-              <span className="text-foreground">{shippingCost === 0 ? "Free" : formatCurrency(shippingCost)}</span>
+              <span className="text-foreground">
+                {estimatedShipping === 0 ? "Free" : formatCurrency(estimatedShipping)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Estimated tax</span>
-              <span className="text-foreground">{formatCurrency(tax)}</span>
+              <span className="text-foreground">{formatCurrency(estimatedTax)}</span>
             </div>
           </div>
           <div className="my-4 border-t border-border" />
           <div className="flex justify-between text-base font-semibold text-foreground">
-            <span>Total</span>
-            <span>{formatCurrency(grandTotal)}</span>
+            <span>Estimated total</span>
+            <span>{formatCurrency(estimatedGrandTotal)}</span>
           </div>
         </div>
       </div>

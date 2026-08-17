@@ -41,8 +41,8 @@ export const orderService = {
     const { data } = await http.get<ApiResponse<Order>>(ENDPOINTS.orders.byId(id))
     return unwrap(data)
   },
-  async place(): Promise<Order> {
-    const { data } = await http.post<ApiResponse<Order>>(ENDPOINTS.orders.base, {})
+  async place(payload: { shippingMethod: "STANDARD" | "EXPRESS"; shippingAddress: string }): Promise<Order> {
+    const { data } = await http.post<ApiResponse<Order>>(ENDPOINTS.orders.base, payload)
     return unwrap(data)
   },
   // NOTE: there is no PUT /orders/{id} on the backend. Order status changes

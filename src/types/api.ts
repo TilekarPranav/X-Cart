@@ -125,6 +125,10 @@ export interface Order {
   id: number
   status: OrderStatus | string
   totalAmount: number
+  shippingAmount: number
+  taxAmount: number
+  shippingMethod: string
+  shippingAddress: string
   items: OrderItem[]
   createdAt: string
 }
