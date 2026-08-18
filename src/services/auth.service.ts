@@ -1,5 +1,6 @@
 import { ENDPOINTS } from "@/api/endpoints"
-import type { ApiResponse, AuthTokens, AuthUser, UserProfile } from "@/types/api"
+import type { ApiResponse, AuthTokens, AuthUser, UserProfile, RawRole } from "@/types/api"
+import { normalizeRoles } from "@/types/api"
 import { http, unwrap } from "./http"
 
 export interface LoginPayload {
@@ -23,7 +24,13 @@ export const authService = {
   },
   async me(): Promise<AuthUser> {
     const { data } = await http.get<ApiResponse<AuthUser>>(ENDPOINTS.auth.me)
-    return unwrap(data)
+    const raw = unwrap(data)
+    // Normalise roles here — the real Spring Boot backend serialises each
+    // GrantedAuthority as {authority: "ROLE_X"} (Jackson default), not a plain
+    // string. .includes("ROLE_ADMIN") silently fails against an object, which
+    // is what blocked correctly-provisioned admins from reaching the dashboard.
+    // Normalising at this single boundary means no call-site changes needed.
+    return { ...raw, roles: normalizeRoles(raw.roles as RawRole[]) }
   },
 }
 

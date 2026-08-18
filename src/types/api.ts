@@ -53,6 +53,24 @@ export interface AuthTokens {
 
 export type Role = "ROLE_CUSTOMER" | "ROLE_ADMIN"
 
+/**
+ * Spring Boot's Jackson serialiser writes each `GrantedAuthority` as
+ * `{"authority": "ROLE_X"}` by default (not a plain string). `RawRole`
+ * captures both shapes so the frontend can handle whichever the backend sends.
+ *
+ * Bug history: the frontend used `roles.includes("ROLE_ADMIN")` which always
+ * returned `false` when the backend returned the object shape — silently
+ * blocking correctly-provisioned admins. Fixed by normalising at the
+ * `authService.me()` boundary; see `auth.service.ts`.
+ */
+export type RawRole = string | { authority: string }
+
+/** Map raw backend role values to plain strings regardless of shape. */
+export function normalizeRoles(raw: RawRole[] | undefined | null): string[] {
+  if (!raw || !raw.length) return []
+  return raw.map((r) => (typeof r === "string" ? r : r.authority))
+}
+
 export interface AuthUser {
   id: number
   name: string

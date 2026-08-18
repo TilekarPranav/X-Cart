@@ -66,6 +66,9 @@ function paginate<T>(items: T[], page: number, size: number): Page<T> {
 const KNOWN_USERS: Record<string, { id: number; name: string; roles: string[]; password: string }> = {
   "customer@xcart.shop": { id: 1, name: "Ava Customer", roles: ["ROLE_CUSTOMER"], password: "password" },
   "admin@xcart.shop": { id: 2, name: "Site Admin", roles: ["ROLE_ADMIN", "ROLE_CUSTOMER"], password: "admin123" },
+  // Real admin email mirrored here so USE_MOCK=true local dev accepts the same
+  // address as production. Password is a dev-only placeholder — never the real one.
+  "admin@example.com": { id: 3, name: "Admin", roles: ["ROLE_ADMIN", "ROLE_CUSTOMER"], password: "admin123" },
 }
 
 let currentUser: AuthUser | null = null

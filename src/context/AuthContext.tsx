@@ -16,9 +16,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function toUser(tokens: AuthTokens): AuthUser {
-  return { id: tokens.userId, name: tokens.name, email: tokens.email, roles: ["ROLE_CUSTOMER"] }
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -57,10 +54,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await authService.me()
       setUser(me)
       return me
-    } catch {
-      const fallback = toUser(tokens)
-      setUser(fallback)
-      return fallback
+    } catch (err) {
+      // POST /auth/me failed right after login — we cannot confirm this
+      // account’s roles, so we MUST NOT proceed (an admin could be silently
+      // downgraded to ROLE_CUSTOMER and then blocked from the dashboard).
+      // Clear the tokens we just stored and surface a real error instead.
+      console.error(
+        "[AuthContext] GET /auth/me failed immediately after login — " +
+          "clearing tokens and aborting login to prevent silent role downgrade.",
+        err,
+      )
+      tokenStore.clear()
+      throw err
     }
   }, [])
 
