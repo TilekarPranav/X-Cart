@@ -5,6 +5,7 @@ export const ENDPOINTS = {
     login: "/auth/login",
     register: "/auth/register",
     me: "/auth/me",
+    logout: "/auth/logout",
   },
   users: {
     profile: "/users/profile",

@@ -2,7 +2,6 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "ax
 import type {
   AdminDashboard,
   ApiResponse,
-  AuthTokens,
   AuthUser,
   Cart,
   CartItem,
@@ -105,17 +104,6 @@ function route(method: string, pattern: RegExp, handler: Handler) {
 
 /* ------------------------------- Auth ---------------------------------- */
 
-function tokensFor(user: { id: number; name: string }, email: string): AuthTokens {
-  return {
-    accessToken: `mock-access-${user.id}-${Date.now()}`,
-    refreshToken: `mock-refresh-${user.id}`,
-    tokenType: "Bearer",
-    userId: user.id,
-    name: user.name,
-    email,
-  }
-}
-
 route("post", /^\/auth\/login$/, ({ body }) => {
   const email = String(body?.email ?? "").toLowerCase()
   const found = KNOWN_USERS[email] ?? registeredExtra[email]
@@ -123,7 +111,7 @@ route("post", /^\/auth\/login$/, ({ body }) => {
     return { status: 401, payload: fail("Invalid email or password") }
   }
   currentUser = { id: found.id, name: found.name, email, roles: found.roles }
-  return { status: 200, payload: ok(tokensFor(found, email), "Logged in successfully") }
+  return { status: 200, payload: ok(currentUser, "Logged in successfully") }
 })
 
 route("post", /^\/auth\/register$/, ({ body }) => {
@@ -135,7 +123,12 @@ route("post", /^\/auth\/register$/, ({ body }) => {
   const record = { id, name: body?.name ?? "New User", roles: ["ROLE_CUSTOMER"], password: body?.password }
   registeredExtra[email] = record
   currentUser = { id, name: record.name, email, roles: record.roles }
-  return { status: 201, payload: ok(tokensFor(record, email), "Account created successfully") }
+  return { status: 201, payload: ok(currentUser, "Account created successfully") }
+})
+
+route("post", /^\/auth\/logout$/, () => {
+  currentUser = null
+  return { status: 200, payload: ok(null, "Logged out") }
 })
 
 route("get", /^\/auth\/me$/, () => {

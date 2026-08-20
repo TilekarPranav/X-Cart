@@ -42,15 +42,6 @@ export interface Page<T> {
 
 /* ------------------------------- Auth ------------------------------- */
 
-export interface AuthTokens {
-  accessToken: string
-  refreshToken: string
-  tokenType: string
-  userId: number
-  name: string
-  email: string
-}
-
 export type Role = "ROLE_CUSTOMER" | "ROLE_ADMIN"
 
 /**

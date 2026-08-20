@@ -15,8 +15,6 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "https://xcart-ecommerce.onrender.com"
 
 export const STORAGE_KEYS = {
-  accessToken: "xcart.accessToken",
-  refreshToken: "xcart.refreshToken",
   theme: "xcart.theme",
   recentSearches: "xcart.recentSearches",
   wishlist: "xcart.wishlist",
