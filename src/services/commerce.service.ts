@@ -48,9 +48,9 @@ export const orderService = {
   // NOTE: there is no PUT /orders/{id} on the backend. Order status changes
   // are admin-only and live at PUT /admin/orders/{id}/status -
   // use adminService.updateOrderStatus (see admin.service.ts) instead.
-  async cancel(id: number): Promise<Order> {
-    const { data } = await http.delete<ApiResponse<Order>>(ENDPOINTS.orders.byId(id))
-    return unwrap(data)
+  async cancel(id: number): Promise<string> {
+    const { data } = await http.delete<ApiResponse<null>>(ENDPOINTS.orders.byId(id))
+    return data.message || "Order cancelled"
   },
 }
 

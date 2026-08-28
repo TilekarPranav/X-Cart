@@ -25,18 +25,29 @@ import { PrivacyPage, TermsPage } from "@/pages/LegalPages"
 import NotFoundPage from "@/pages/NotFoundPage"
 import ServerErrorPage from "@/pages/ServerErrorPage"
 
+import { lazy, Suspense } from "react"
+import { Spinner } from "@/components/ui"
+
 import LoginPage from "@/pages/auth/LoginPage"
 import RegisterPage from "@/pages/auth/RegisterPage"
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage"
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage"
 
-import AdminLoginPage from "@/pages/admin/AdminLoginPage"
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage"
-import AdminProductsPage from "@/pages/admin/AdminProductsPage"
-import AdminCategoriesPage from "@/pages/admin/AdminCategoriesPage"
-import AdminOrdersPage from "@/pages/admin/AdminOrdersPage"
-import AdminInventoryPage from "@/pages/admin/AdminInventoryPage"
-import AdminUsersPage from "@/pages/admin/AdminUsersPage"
+const AdminLoginPage = lazy(() => import("@/pages/admin/AdminLoginPage"))
+const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"))
+const AdminProductsPage = lazy(() => import("@/pages/admin/AdminProductsPage"))
+const AdminCategoriesPage = lazy(() => import("@/pages/admin/AdminCategoriesPage"))
+const AdminOrdersPage = lazy(() => import("@/pages/admin/AdminOrdersPage"))
+const AdminInventoryPage = lazy(() => import("@/pages/admin/AdminInventoryPage"))
+const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"))
+
+function AdminFallback() {
+  return (
+    <div className="flex min-h-[300px] items-center justify-center">
+      <Spinner className="h-8 w-8 text-primary" />
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -135,7 +146,14 @@ export default function App() {
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="/admin/login"
+          element={
+            <Suspense fallback={<AdminFallback />}>
+              <AdminLoginPage />
+            </Suspense>
+          }
+        />
       </Route>
 
       {/* Admin console */}
@@ -143,7 +161,9 @@ export default function App() {
         path="/admin"
         element={
           <RequireAdmin>
-            <AdminLayout />
+            <Suspense fallback={<AdminFallback />}>
+              <AdminLayout />
+            </Suspense>
           </RequireAdmin>
         }
       >

@@ -1,5 +1,6 @@
-import axios, { type AxiosError } from "axios"
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { API_BASE_URL, USE_MOCK } from "@/constants/app"
+import { ENDPOINTS } from "@/api/endpoints"
 import type { ApiResponse } from "@/types/api"
 import { mockAdapter } from "./mock/server"
 
@@ -32,23 +33,76 @@ if (USE_MOCK) {
   http.defaults.adapter = mockAdapter
 }
 
-// Response interceptor: handle 401 by redirecting to login. There's no stored
-// token to check first — the cookie is the only source of truth, and it's
-// httpOnly, so we can't inspect it from JS anyway. A 401 just means "not
-// authenticated," full stop.
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+function processQueue(error: AxiosError | null) {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve()
+    }
+  })
+  failedQueue = []
+}
+
+function redirectToLogin() {
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/login") &&
+    !window.location.pathname.startsWith("/admin/login")
+  ) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search)
+    window.location.assign(`/login?next=${next}`)
+  }
+}
+
+// Response interceptor: handle 401 with silent token refresh attempt before redirecting
 http.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiResponse<unknown>>) => {
+  async (error: AxiosError<ApiResponse<unknown>>) => {
+    const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
     const status = error.response?.status
-    if (
-      status === 401 &&
-      typeof window !== "undefined" &&
-      !window.location.pathname.startsWith("/login") &&
-      !window.location.pathname.startsWith("/admin/login")
-    ) {
-      const next = encodeURIComponent(window.location.pathname)
-      window.location.assign(`/login?next=${next}`)
+    const requestUrl = originalRequest?.url || ""
+
+    const isAuthEndpoint =
+      requestUrl.includes(ENDPOINTS.auth.login) ||
+      requestUrl.includes(ENDPOINTS.auth.register) ||
+      requestUrl.includes(ENDPOINTS.auth.refresh)
+
+    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then(() => http(originalRequest))
+          .catch((err) => Promise.reject(err))
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        await http.post(ENDPOINTS.auth.refresh)
+        processQueue(null)
+        return http(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError as AxiosError)
+        redirectToLogin()
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
+
+    if (status === 401 && isAuthEndpoint && !requestUrl.includes(ENDPOINTS.auth.login)) {
+      redirectToLogin()
+    }
+
     return Promise.reject(error)
   },
 )

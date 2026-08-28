@@ -131,6 +131,11 @@ route("post", /^\/auth\/logout$/, () => {
   return { status: 200, payload: ok(null, "Logged out") }
 })
 
+route("post", /^\/auth\/refresh$/, () => {
+  if (!currentUser) return { status: 401, payload: fail("Not authenticated") }
+  return { status: 200, payload: ok(currentUser, "Token refreshed") }
+})
+
 route("get", /^\/auth\/me$/, () => {
   if (!currentUser) return { status: 401, payload: fail("Not authenticated") }
   return { status: 200, payload: ok(currentUser) }
@@ -398,7 +403,13 @@ function transition(id: number, next: string) {
   return { status: 200, payload: ok(o, `Order ${next.toLowerCase()}`) }
 }
 
-route("put", /^\/orders\/(\d+)$/, ({ body }, m) => transition(Number(m[1]), body?.status))
+route("delete", /^\/orders\/(\d+)$/, (_c, m) => {
+  const id = Number(m[1])
+  const o = orders.find((x) => x.id === id)
+  if (!o) return { status: 404, payload: fail("Order not found") }
+  o.status = "CANCELLED"
+  return { status: 200, payload: ok(null, "Order cancelled") }
+})
 
 /* ------------------------------ Payments ------------------------------- */
 

@@ -6,6 +6,7 @@ export const ENDPOINTS = {
     register: "/auth/register",
     me: "/auth/me",
     logout: "/auth/logout",
+    refresh: "/auth/refresh",
   },
   users: {
     profile: "/users/profile",
