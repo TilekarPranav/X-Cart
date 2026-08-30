@@ -7,12 +7,16 @@ import { cn } from "@/utils/cn"
 import { Badge, Button, Rating } from "@/components/ui"
 import { useWishlist } from "@/context/WishlistContext"
 import { useAddToCart } from "@/hooks/useCommerce"
+import { useAuth } from "@/context/AuthContext"   // add this import
 
 export function ProductCard({ product }: { product: Product }) {
   const { has, toggle } = useWishlist()
+  const { isAuthenticated } = useAuth()            // add this
   const addToCart = useAddToCart()
   const wished = has(product.id)
   const rating = 3.5 + ((product.id % 3) * 0.5)
+
+
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-md">
@@ -54,7 +58,16 @@ export function ProductCard({ product }: { product: Product }) {
             className="h-9 w-9"
             disabled={!product.active}
             loading={addToCart.isPending}
-            onClick={() => addToCart.mutate({ productId: product.id, quantity: 1 }, { onSuccess: () => toast.success("Added to cart") })}
+            onClick={() => {
+              if (!isAuthenticated) {
+                toast.error("Please log in to add items to your cart")
+                return
+              }
+              addToCart.mutate(
+                { productId: product.id, quantity: 1 },
+                { onSuccess: () => toast.success("Added to cart") },
+              )
+            }}
             aria-label="Add to cart"
           >
             <ShoppingCart className="h-4 w-4" />
