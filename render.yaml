@@ -6,5 +6,8 @@ services:
     staticPublishPath: ./dist
     routes:
       - type: rewrite
+        source: /api/*
+        destination: https://xcart-ecommerce.onrender.com/*
+      - type: rewrite
         source: /*
         destination: /index.html
