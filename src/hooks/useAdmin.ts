@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/api/query-keys"
 import { adminService, notificationService } from "@/services/admin.service"
 import { useAuth } from "@/context/AuthContext"
+import type { ProductQuery } from "@/services/catalog.service"
+
 
 /* --------------------------- Notifications ----------------------------- */
 
@@ -68,6 +70,25 @@ export function useUpdateAdminOrderStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "orders"] })
       qc.invalidateQueries({ queryKey: queryKeys.admin.dashboard })
+    },
+  })
+}
+
+export function useAdminProducts(query: ProductQuery = {}) {
+  return useQuery({
+    queryKey: queryKeys.admin.products(query),
+    queryFn: () => adminService.products(query),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useReactivateProduct() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => adminService.reactivateProduct(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "products"] })
+      qc.invalidateQueries({ queryKey: queryKeys.products.all }) // so the public catalog picks it up too
     },
   })
 }

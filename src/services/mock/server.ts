@@ -195,7 +195,7 @@ route("get", /^\/products\/search$/, ({ params }) => {
   const category = params.get("categoryId")
   const page = Number(params.get("page") ?? 0)
   const size = Number(params.get("size") ?? 12)
-  let list = products.filter((p) => p.name.toLowerCase().includes(q))
+  let list = products.filter((p) => p.active && p.name.toLowerCase().includes(q))
   if (category) list = list.filter((p) => p.categoryId === Number(category))
   return { status: 200, payload: ok(paginate<Product>(list, page, size)) }
 })
@@ -233,6 +233,33 @@ route("get", /^\/products\/(\d+)$/, (_c, m) => {
   const p = products.find((x) => x.id === Number(m[1]))
   if (!p) return { status: 404, payload: fail("Product not found") }
   return { status: 200, payload: ok(p) }
+})
+
+route("put", /^\/reviews\/(\d+)$/, ({ body }, m) => {
+  const id = Number(m[1])
+  for (const key of Object.keys(reviewsByProduct)) {
+    const list = reviewsByProduct[Number(key)]
+    const review = list?.find((r) => r.id === id)
+    if (review) {
+      review.rating = body.rating
+      review.comment = body.comment
+      return { status: 200, payload: ok(review, "Review updated") }
+    }
+  }
+  return { status: 404, payload: fail("Review not found") }
+})
+
+route("delete", /^\/reviews\/(\d+)$/, (_c, m) => {
+  const id = Number(m[1])
+  for (const key of Object.keys(reviewsByProduct)) {
+    const list = reviewsByProduct[Number(key)]
+    const idx = list?.findIndex((r) => r.id === id) ?? -1
+    if (idx !== -1) {
+      list.splice(idx, 1)
+      return { status: 200, payload: { success: true, message: "Review deleted", timestamp: now() } }
+    }
+  }
+  return { status: 404, payload: fail("Review not found") }
 })
 
 route("get", /^\/products$/, ({ params }) => {
@@ -448,7 +475,7 @@ function inventoryPayload(productId: number) {
 
 route("get", /^\/inventory\/(\d+)$/, (_c, m) => ({ status: 200, payload: ok(inventoryPayload(Number(m[1]))) }))
 
-route("post", /^\/inventory\/update$/, ({ body }) => {
+route("put", /^\/inventory\/update$/, ({ body }) => {
   inventory[Number(body.productId)] = Number(body.quantity)
   return { status: 200, payload: ok(inventoryPayload(Number(body.productId)), "Inventory updated") }
 })
@@ -522,6 +549,23 @@ route("put", /^\/admin\/orders\/(\d+)\/status$/, ({ body }, m) => {
     return { status: 200, payload: { success: true, message: `Order status updated to ${body?.status}`, timestamp: now() } }
   }
   return res
+})
+
+route("get", /^\/admin\/products$/, ({ params }) => {
+  const q = (params.get("name") ?? "").toLowerCase()
+  const category = params.get("categoryId")
+  const page = Number(params.get("page") ?? 0)
+  const size = Number(params.get("size") ?? 50)
+  let list = products.filter((p) => p.name.toLowerCase().includes(q)) // no active filter — admin sees everything
+  if (category) list = list.filter((p) => p.categoryId === Number(category))
+  return { status: 200, payload: ok(paginate<Product>(list, page, size)) }
+})
+
+route("put", /^\/admin\/products\/(\d+)\/reactivate$/, (_c, m) => {
+  const p = products.find((x) => x.id === Number(m[1]))
+  if (!p) return { status: 404, payload: fail("Product not found") }
+  p.active = true
+  return { status: 200, payload: ok(p, "Product reactivated") }
 })
 
 /* ------------------------------ Adapter -------------------------------- */

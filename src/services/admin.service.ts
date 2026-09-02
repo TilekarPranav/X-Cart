@@ -6,7 +6,9 @@ import type {
   AppNotification,
   Order,
   Page,
+  Product,
 } from "@/types/api"
+import type { ProductQuery } from "./catalog.service"
 import { http, unwrap } from "./http"
 
 export const notificationService = {
@@ -50,5 +52,22 @@ export const adminService = {
   async updateOrderStatus(id: number, status: string): Promise<string> {
     const { data } = await http.put<ApiResponse<never>>(ENDPOINTS.admin.orderStatus(id), { status })
     return data.message
+  },
+  // Unlike productService.list() (catalog.service.ts), this includes
+  // deactivated products — it backs the admin product-management table.
+  async products(query: ProductQuery = {}): Promise<Page<Product>> {
+    const { data } = await http.get<ApiResponse<Page<Product>>>(ENDPOINTS.admin.products, {
+      params: {
+        name: query.name || undefined,
+        categoryId: query.categoryId,
+        page: query.page ?? 0,
+        size: query.size ?? 50,
+      },
+    })
+    return unwrap(data)
+  },
+  async reactivateProduct(id: number): Promise<Product> {
+    const { data } = await http.put<ApiResponse<Product>>(ENDPOINTS.admin.productReactivate(id))
+    return unwrap(data)
   },
 }

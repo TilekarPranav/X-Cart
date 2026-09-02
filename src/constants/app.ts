@@ -4,7 +4,6 @@ export const APP = {
   name: "X Cart",
   tagline: "Premium shopping, reimagined.",
   supportEmail: "support@xcart.shop",
-  currency: "USD",
 } as const
 
 /** When true, requests are served by the in-memory mock backend. */

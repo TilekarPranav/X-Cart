@@ -6,17 +6,18 @@ import { toast } from "sonner"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import { formatCurrency, formatImageUrl } from "@/utils/format"
 import { productSchema, type ProductFormValues } from "@/utils/schemas"
-import { useCategories, useCreateProduct, useDeleteProduct, useProducts, useUpdateProduct, useUploadProductImage } from "@/hooks/useCatalog"
 import { getErrorMessage } from "@/services/http"
 import type { Product } from "@/types/api"
 import { Badge, Button, DataTable, Input, Modal, Select, type Column } from "@/components/ui"
-
+import { useCategories, useCreateProduct, useDeleteProduct, useUpdateProduct, useUploadProductImage } from "@/hooks/useCatalog"
+import { useAdminProducts, useReactivateProduct } from "@/hooks/useAdmin"
 export default function AdminProductsPage() {
-  const { data, isLoading } = useProducts({ size: 50 })
+  const { data, isLoading } = useAdminProducts({ size: 50 })
   const { data: categories } = useCategories()
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const deleteProduct = useDeleteProduct()
+  const reactivateProduct = useReactivateProduct()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -102,6 +103,21 @@ export default function AdminProductsPage() {
       header: "",
       render: (p) => (
         <div className="flex justify-end gap-1">
+          {!p.active && (
+            <button
+              onClick={async () => {
+                try {
+                  await reactivateProduct.mutateAsync(p.id)
+                  toast.success("Product reactivated")
+                } catch (err) {
+                  toast.error(getErrorMessage(err, "Could not reactivate product"))
+                }
+              }}
+              className="rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+            >
+              Reactivate
+            </button>
+          )}
           <button onClick={() => openEdit(p)} className="rounded-lg p-2 hover:bg-muted" aria-label="Edit product">
             <Pencil className="h-4 w-4 text-muted-foreground" />
           </button>

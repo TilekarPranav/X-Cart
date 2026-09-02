@@ -1,6 +1,5 @@
 import type { ProductQuery } from "@/services/catalog.service"
 
-/** Centralized TanStack Query keys per resource for consistent invalidation. */
 export const queryKeys = {
   auth: ["auth", "me"] as const,
   profile: ["users", "profile"] as const,
@@ -26,5 +25,6 @@ export const queryKeys = {
     dashboard: ["admin", "dashboard"] as const,
     users: (page: number) => ["admin", "users", page] as const,
     orders: (page: number) => ["admin", "orders", page] as const,
+    products: (q: ProductQuery) => ["admin", "products", q] as const,
   },
 }

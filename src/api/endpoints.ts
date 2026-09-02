@@ -7,7 +7,9 @@ export const ENDPOINTS = {
     me: "/auth/me",
     logout: "/auth/logout",
     refresh: "/auth/refresh",
+    csrf: "/auth/csrf",
   },
+
   users: {
     profile: "/users/profile",
     changePassword: "/users/change-password",
@@ -57,5 +59,7 @@ export const ENDPOINTS = {
     userById: (id: number | string) => `/admin/users/${id}`,
     orders: "/admin/orders",
     orderStatus: (id: number | string) => `/admin/orders/${id}/status`,
+    products: "/admin/products",
+    productReactivate: (id: number | string) => `/admin/products/${id}/reactivate`,
   },
 } as const
