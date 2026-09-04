@@ -9,25 +9,24 @@ import { mockAdapter } from "./mock/server"
  *
  * Auth is cookie-based (httpOnly accessToken/refreshToken set by the backend),
  * not header-based — there is no token for JS to read or attach manually.
- * `withCredentials` is required for the browser to send/receive those cookies
- * at all, since the frontend (x-cart.onrender.com) and backend
- * (xcart-ecommerce.onrender.com) are different origins/sites.
+ * `withCredentials` is required for the browser to send/receive those cookies.
  *
- * CSRF is handled explicitly below, NOT via axios's built-in withXSRFToken.
- * withXSRFToken reads the token straight out of document.cookie — which only
- * works when the cookie was set by the same site the page is running on.
- * Here it wasn't: the XSRF-TOKEN cookie is set by a response from
- * xcart-ecommerce.onrender.com, a different registrable site than
- * x-cart.onrender.com, so document.cookie on this page can never see it,
- * regardless of SameSite/Partitioned. Instead we fetch the token from the
- * response BODY of GET /auth/csrf (which the backend returns for exactly
- * this reason) and attach it to the header ourselves.
+ * CSRF is handled via the standard double-submit cookie pattern:
+ * - The backend's CsrfCookieFilter sets an XSRF-TOKEN cookie (httpOnly=false)
+ *   on every response.
+ * - Axios's built-in withXSRFToken reads the cookie from document.cookie and
+ *   echoes it back as the X-XSRF-TOKEN header on mutating requests.
+ * - This works because all requests go through the same-origin /api proxy
+ *   (Render rewrite), so the cookie is on the same domain as the page.
  */
 export const http = axios.create({
   baseURL: USE_MOCK ? "" : API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 65_000, // Render free tier cold starts can take 30-60 seconds
   withCredentials: true,
+  withXSRFToken: true,
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
 })
 
 if (USE_MOCK) {
@@ -36,51 +35,50 @@ if (USE_MOCK) {
 
 /* ------------------------------- CSRF ----------------------------------- */
 
-const CSRF_HEADER_NAME = "X-XSRF-TOKEN"
 const SAFE_METHODS = new Set(["get", "head", "options"])
 
-let csrfTokenPromise: Promise<string> | null = null
+let csrfPrimed = false
+let csrfPrimingPromise: Promise<void> | null = null
 
-async function fetchCsrfToken(): Promise<string> {
-  // Plain axios, not `http` — GET is a safe method so the request interceptor
-  // below wouldn't touch it anyway, but using the raw client keeps this
-  // bootstrap call obviously independent of the CSRF machinery it's priming.
-  const { data } = await axios.get<ApiResponse<string>>(`${USE_MOCK ? "" : API_BASE_URL}${ENDPOINTS.auth.csrf}`, {
-    withCredentials: true,
-  })
-  if (!data.data) throw new Error("CSRF token endpoint returned no token")
-  return data.data
-}
-
-function getCsrfToken(): Promise<string> {
-  if (!csrfTokenPromise) {
-    csrfTokenPromise = fetchCsrfToken().catch((err) => {
-      csrfTokenPromise = null // don't cache a failure — the next attempt should retry
-      throw err
-    })
+/**
+ * Ensure the XSRF-TOKEN cookie exists in the browser before making a
+ * state-changing request. With the same-origin /api proxy, any backend
+ * response deposits the cookie via CsrfCookieFilter. We just need one
+ * GET to prime it — after that, the browser sends the cookie automatically
+ * and Axios reads it to set the header.
+ */
+function ensureCsrfCookie(): Promise<void> {
+  if (csrfPrimed && document.cookie.includes("XSRF-TOKEN=")) {
+    return Promise.resolve()
   }
-  return csrfTokenPromise
+  if (!csrfPrimingPromise) {
+    csrfPrimingPromise = axios
+      .get(`${USE_MOCK ? "" : API_BASE_URL}${ENDPOINTS.auth.csrf}`, {
+        withCredentials: true,
+      })
+      .then(() => {
+        csrfPrimed = true
+      })
+      .catch(() => {
+        csrfPrimingPromise = null // retry on next attempt
+      })
+  }
+  return csrfPrimingPromise
 }
 
 /**
  * Call after login/register/logout: those are the points where the backend's
- * authentication state changes, and if Spring Security ever starts rotating
- * the CSRF token on authentication change (it's not confirmed either way for
- * this app's custom login flow), a cached pre-login token would otherwise go
- * stale silently. Cheap to call defensively — worst case, one extra GET.
+ * authentication state changes, and the CSRF token may be rotated.
  */
 export function invalidateCsrfToken() {
-  csrfTokenPromise = null
+  csrfPrimed = false
+  csrfPrimingPromise = null
 }
 
 http.interceptors.request.use(async (config) => {
   const method = (config.method || "get").toLowerCase()
   if (USE_MOCK || SAFE_METHODS.has(method)) return config
-  if ((config.url || "").includes(ENDPOINTS.auth.csrf)) return config // avoid recursing on the fetch itself
-
-  const token = await getCsrfToken()
-  config.headers = config.headers ?? {}
-  config.headers[CSRF_HEADER_NAME] = token
+  await ensureCsrfCookie()
   return config
 })
 

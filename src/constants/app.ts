@@ -11,7 +11,7 @@ export const USE_MOCK =
   (import.meta.env.VITE_USE_MOCK ?? "false") !== "false"
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "https://xcart-ecommerce.onrender.com"
+  import.meta.env.VITE_API_BASE_URL ?? "/api"
 
 export const STORAGE_KEYS = {
   theme: "xcart.theme",

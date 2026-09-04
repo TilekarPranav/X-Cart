@@ -27,5 +27,13 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: "https://xcart-ecommerce.onrender.com",
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api/, ""),
+        secure: true,
+      },
+    },
   },
 })
