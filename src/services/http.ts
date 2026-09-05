@@ -11,22 +11,19 @@ import { mockAdapter } from "./mock/server"
  * not header-based — there is no token for JS to read or attach manually.
  * `withCredentials` is required for the browser to send/receive those cookies.
  *
- * CSRF is handled via the standard double-submit cookie pattern:
- * - The backend's CsrfCookieFilter sets an XSRF-TOKEN cookie (httpOnly=false)
- *   on every response.
- * - Axios's built-in withXSRFToken reads the cookie from document.cookie and
- *   echoes it back as the X-XSRF-TOKEN header on mutating requests.
- * - This works because all requests go through the same-origin /api proxy
- *   (Render rewrite), so the cookie is on the same domain as the page.
+ * CSRF is NOT handled via axios's built-in withXSRFToken — do not re-add it.
+ * That option reads the token straight out of document.cookie at send time,
+ * via axios's own internal logic this app has no visibility into or control
+ * over, and in practice it did not reliably attach the header. Instead, the
+ * token is read directly from the JSON body of GET /auth/csrf (the backend
+ * returns it there for exactly this reason) and attached to the header
+ * explicitly, in code this app fully controls.
  */
 export const http = axios.create({
   baseURL: USE_MOCK ? "" : API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 65_000, // Render free tier cold starts can take 30-60 seconds
   withCredentials: true,
-  withXSRFToken: true,
-  xsrfCookieName: "XSRF-TOKEN",
-  xsrfHeaderName: "X-XSRF-TOKEN",
 })
 
 if (USE_MOCK) {
@@ -35,50 +32,49 @@ if (USE_MOCK) {
 
 /* ------------------------------- CSRF ----------------------------------- */
 
+const CSRF_HEADER_NAME = "X-XSRF-TOKEN"
 const SAFE_METHODS = new Set(["get", "head", "options"])
 
-let csrfPrimed = false
-let csrfPrimingPromise: Promise<void> | null = null
+let csrfTokenPromise: Promise<string> | null = null
 
-/**
- * Ensure the XSRF-TOKEN cookie exists in the browser before making a
- * state-changing request. With the same-origin /api proxy, any backend
- * response deposits the cookie via CsrfCookieFilter. We just need one
- * GET to prime it — after that, the browser sends the cookie automatically
- * and Axios reads it to set the header.
- */
-function ensureCsrfCookie(): Promise<void> {
-  if (csrfPrimed && document.cookie.includes("XSRF-TOKEN=")) {
-    return Promise.resolve()
+async function fetchCsrfToken(): Promise<string> {
+  // Plain axios, not `http` — GET is a safe method so the request interceptor
+  // below wouldn't touch it anyway; using the raw client keeps this bootstrap
+  // call obviously independent of the CSRF machinery it's priming.
+  const { data } = await axios.get<ApiResponse<string>>(`${USE_MOCK ? "" : API_BASE_URL}${ENDPOINTS.auth.csrf}`, {
+    withCredentials: true,
+  })
+  if (!data.data) throw new Error("CSRF token endpoint returned no token")
+  return data.data
+}
+
+function getCsrfToken(): Promise<string> {
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = fetchCsrfToken().catch((err) => {
+      csrfTokenPromise = null // don't cache a failure — the next attempt should retry
+      throw err
+    })
   }
-  if (!csrfPrimingPromise) {
-    csrfPrimingPromise = axios
-      .get(`${USE_MOCK ? "" : API_BASE_URL}${ENDPOINTS.auth.csrf}`, {
-        withCredentials: true,
-      })
-      .then(() => {
-        csrfPrimed = true
-      })
-      .catch(() => {
-        csrfPrimingPromise = null // retry on next attempt
-      })
-  }
-  return csrfPrimingPromise
+  return csrfTokenPromise
 }
 
 /**
  * Call after login/register/logout: those are the points where the backend's
- * authentication state changes, and the CSRF token may be rotated.
+ * authentication state changes and the CSRF token may be rotated server-side.
+ * Cheap to call defensively — worst case, one extra GET.
  */
 export function invalidateCsrfToken() {
-  csrfPrimed = false
-  csrfPrimingPromise = null
+  csrfTokenPromise = null
 }
 
 http.interceptors.request.use(async (config) => {
   const method = (config.method || "get").toLowerCase()
   if (USE_MOCK || SAFE_METHODS.has(method)) return config
-  await ensureCsrfCookie()
+  if ((config.url || "").includes(ENDPOINTS.auth.csrf)) return config // avoid recursing on the fetch itself
+
+  const token = await getCsrfToken()
+  config.headers = config.headers ?? {}
+  config.headers[CSRF_HEADER_NAME] = token
   return config
 })
 
