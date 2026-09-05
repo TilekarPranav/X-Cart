@@ -10,8 +10,14 @@ export const APP = {
 export const USE_MOCK =
   (import.meta.env.VITE_USE_MOCK ?? "false") !== "false"
 
+// Direct to the backend, not through Render's /api proxy: that proxy was
+// tried and empirically ruled out — a direct curl request round-tripped the
+// CSRF cookie correctly, while every attempt through the proxy silently lost
+// it. If VITE_API_BASE_URL is set in Render's dashboard or CI env, remove it
+// (or set it back to this same absolute URL) — leaving it at "/api" will
+// reproduce the bug this comment is describing.
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "/api"
+  import.meta.env.VITE_API_BASE_URL ?? "https://xcart-ecommerce.onrender.com"
 
 export const STORAGE_KEYS = {
   theme: "xcart.theme",

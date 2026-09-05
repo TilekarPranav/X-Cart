@@ -4,13 +4,14 @@ services:
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_BASE_URL
-        value: /api
+    # No VITE_API_BASE_URL override here on purpose: the frontend calls the
+    # backend directly (see API_BASE_URL's default in src/constants/app.ts).
+    # A /api/* -> backend rewrite rule was tried here and removed again — it
+    # reliably dropped the XSRF-TOKEN cookie specifically (confirmed by a
+    # direct curl request to the backend working perfectly, while every
+    # attempt through this proxy 403'd on CSRF). If you're tempted to re-add
+    # it, re-run that curl comparison first.
     routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://xcart-ecommerce.onrender.com/*
       - type: rewrite
         source: /*
         destination: /index.html
